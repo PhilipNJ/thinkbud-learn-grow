@@ -14,7 +14,199 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      activity_log: {
+        Row: {
+          details: Json | null
+          event_type: string
+          id: string
+          timestamp: string
+          user_id: string
+        }
+        Insert: {
+          details?: Json | null
+          event_type: string
+          id?: string
+          timestamp?: string
+          user_id: string
+        }
+        Update: {
+          details?: Json | null
+          event_type?: string
+          id?: string
+          timestamp?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_log_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daily_stats: {
+        Row: {
+          accuracy: number
+          created_at: string
+          date: string
+          difficulty_ratio: Json
+          id: string
+          questions_attempted: number
+          questions_correct: number
+          streak: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accuracy?: number
+          created_at?: string
+          date?: string
+          difficulty_ratio?: Json
+          id?: string
+          questions_attempted?: number
+          questions_correct?: number
+          streak?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accuracy?: number
+          created_at?: string
+          date?: string
+          difficulty_ratio?: Json
+          id?: string
+          questions_attempted?: number
+          questions_correct?: number
+          streak?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_stats_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          difficulty_ratio: Json
+          email: string | null
+          id: string
+          name: string | null
+          streak: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          difficulty_ratio?: Json
+          email?: string | null
+          id: string
+          name?: string | null
+          streak?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          difficulty_ratio?: Json
+          email?: string | null
+          id?: string
+          name?: string | null
+          streak?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      questions: {
+        Row: {
+          correct_answer: string
+          created_at: string
+          difficulty: Database["public"]["Enums"]["difficulty_level"]
+          id: string
+          option_a: string
+          option_b: string
+          option_c: string
+          option_d: string
+          question_text: string
+          reasoning: string | null
+          subject: string
+        }
+        Insert: {
+          correct_answer: string
+          created_at?: string
+          difficulty: Database["public"]["Enums"]["difficulty_level"]
+          id?: string
+          option_a: string
+          option_b: string
+          option_c: string
+          option_d: string
+          question_text: string
+          reasoning?: string | null
+          subject: string
+        }
+        Update: {
+          correct_answer?: string
+          created_at?: string
+          difficulty?: Database["public"]["Enums"]["difficulty_level"]
+          id?: string
+          option_a?: string
+          option_b?: string
+          option_c?: string
+          option_d?: string
+          question_text?: string
+          reasoning?: string | null
+          subject?: string
+        }
+        Relationships: []
+      }
+      user_answers: {
+        Row: {
+          answered_at: string
+          chosen_answer: string
+          correct: boolean
+          id: string
+          question_id: string
+          user_id: string
+        }
+        Insert: {
+          answered_at?: string
+          chosen_answer: string
+          correct: boolean
+          id?: string
+          question_id: string
+          user_id: string
+        }
+        Update: {
+          answered_at?: string
+          chosen_answer?: string
+          correct?: boolean
+          id?: string
+          question_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_answers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +215,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      difficulty_level: "easy" | "moderate" | "difficult"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +342,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      difficulty_level: ["easy", "moderate", "difficult"],
+    },
   },
 } as const
