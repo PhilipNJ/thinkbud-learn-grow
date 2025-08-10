@@ -11,6 +11,7 @@ const Play = () => {
   const [selected, setSelected] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [answersToday, setAnswersToday] = useState<number | null>(null);
 
   useEffect(() => {
     document.title = "Play | ThinkBud";
@@ -27,12 +28,33 @@ const Play = () => {
     init();
   }, [navigate]);
 
+  // Load today's answer count to lock the session after 10
+  useEffect(() => {
+    const loadCount = async () => {
+      if (!userId) return;
+      const start = new Date();
+      start.setHours(0, 0, 0, 0);
+      const end = new Date();
+      end.setHours(23, 59, 59, 999);
+      const { count } = await supabase
+        .from("user_answers")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .gte("answered_at", start.toISOString())
+        .lte("answered_at", end.toISOString());
+      setAnswersToday(typeof count === "number" ? count : 0);
+    };
+    loadCount();
+  }, [userId]);
+
   const { data, isLoading, isError } = useDailyQuestions(userId);
 
   const q = useMemo(() => data?.questions[idx], [data, idx]);
 
   const onAnswer = async (choice: string) => {
     if (!q || !userId) return;
+    // Prevent answering if daily limit reached
+    if ((answersToday ?? 0) >= 10) return;
     setSelected(choice);
     const correct = q.correct_answer?.toLowerCase() === choice.toLowerCase();
     setFeedback(correct ? "correct" : "wrong");
@@ -43,6 +65,8 @@ const Play = () => {
       chosen_answer: choice,
       correct,
     });
+    // Optimistically bump today's count
+    setAnswersToday((c) => (c ?? 0) + 1);
   };
 
   const onNext = () => {
@@ -90,7 +114,7 @@ const Play = () => {
           .upsert(
             {
               user_id: userId,
-              date: today as any,
+              date: today,
               questions_attempted: attempted,
               questions_correct: correct,
               accuracy,
@@ -132,7 +156,7 @@ const Play = () => {
     finalize();
   };
 
-  if (isLoading || !userId) {
+  if (isLoading || !userId || answersToday === null) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background text-muted-foreground">Loading…</div>
     );
@@ -143,7 +167,26 @@ const Play = () => {
     );
   }
 
-  // Finished
+  // If already completed 10 today, show finished screen and block more answers until midnight
+  if ((answersToday ?? 0) >= 10) {
+    return (
+      <div className="min-h-screen bg-background">
+        <main className="container py-10">
+          <Card className="max-w-2xl mx-auto">
+            <CardHeader>
+              <CardTitle>Nice work!</CardTitle>
+              <CardDescription>You've completed today's 10 questions. Come back after midnight.</CardDescription>
+            </CardHeader>
+            <CardFooter className="flex gap-2">
+              <Button className="w-full" onClick={() => navigate("/dashboard")}>Back to Dashboard</Button>
+            </CardFooter>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
+  // Finished via progressing through the session
   if (idx >= data.questions.length) {
     return (
       <div className="min-h-screen bg-background">
@@ -185,7 +228,7 @@ const Play = () => {
                   <Button
                     key={key}
                     variant={selected === key ? "secondary" : "outline"}
-                    disabled={!!feedback}
+        disabled={!!feedback || (answersToday ?? 0) >= 10}
                     onClick={() => onAnswer(key)}
                   >
                     {key.toUpperCase()}. {text}
@@ -203,7 +246,7 @@ const Play = () => {
             )}
           </CardContent>
           <CardFooter>
-            <Button className="w-full" onClick={onNext} disabled={!feedback}>{idx === data.questions.length - 1 ? "Finish" : "Next"}</Button>
+      <Button className="w-full" onClick={onNext} disabled={!feedback || (answersToday ?? 0) >= 10}>{idx === data.questions.length - 1 ? "Finish" : "Next"}</Button>
           </CardFooter>
         </Card>
       </main>
