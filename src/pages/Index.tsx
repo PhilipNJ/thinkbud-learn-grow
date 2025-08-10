@@ -22,7 +22,7 @@ const Index = () => {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [streak, setStreak] = useState<number>(0);
-
+  const [answersToday, setAnswersToday] = useState<number>(0);
   useEffect(() => {
     let mounted = true;
 
@@ -52,6 +52,26 @@ const Index = () => {
         setStreak(profile.streak ?? 0);
       } else {
         setDisplayName((user.user_metadata as any)?.name ?? null);
+      }
+
+      // Load progress for today
+      const start = new Date();
+      start.setHours(0, 0, 0, 0);
+      const end = new Date();
+      end.setHours(23, 59, 59, 999);
+
+      const { count: answersCount, error: answersError } = await supabase
+        .from("user_answers")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .gte("answered_at", start.toISOString())
+        .lte("answered_at", end.toISOString());
+
+      if (answersError) {
+        console.error("[Index] Failed to load today's answers count:", answersError);
+      }
+      if (typeof answersCount === "number") {
+        setAnswersToday(answersCount);
       }
 
       if (mounted) setLoading(false);
@@ -115,10 +135,10 @@ const Index = () => {
               <div className="w-full bg-muted h-3 rounded-full overflow-hidden">
                 <div
                   className="bg-primary h-3 rounded-full transition-all"
-                  style={{ width: "0%" }}
+                  style={{ width: `${Math.min(answersToday, 10) * 10}%` }}
                 />
               </div>
-              <div className="text-right text-sm text-muted-foreground">0 / 10</div>
+              <div className="text-right text-sm text-muted-foreground">{Math.min(answersToday, 10)} / 10</div>
             </div>
           </CardContent>
           <CardFooter className="flex gap-2">
