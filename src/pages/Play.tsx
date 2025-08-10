@@ -48,7 +48,88 @@ const Play = () => {
   const onNext = () => {
     setSelected(null);
     setFeedback(null);
-    if (data && idx < data.questions.length - 1) setIdx((i) => i + 1);
+    if (!data) return;
+    // If not last question, go to next
+    if (idx < data.questions.length - 1) {
+      setIdx((i) => i + 1);
+      return;
+    }
+    // On last question, finalize session and navigate to dashboard
+    const finalize = async () => {
+      try {
+        if (!userId) return navigate("/dashboard");
+        const start = new Date();
+        start.setHours(0, 0, 0, 0);
+        const end = new Date();
+        end.setHours(23, 59, 59, 999);
+        const today = start.toISOString().slice(0, 10);
+
+        // Fetch today answers to compute rollup
+        const { data: answers } = await supabase
+          .from("user_answers")
+          .select("correct, answered_at")
+          .eq("user_id", userId)
+          .gte("answered_at", start.toISOString())
+          .lte("answered_at", end.toISOString());
+
+        const attempted = answers?.length ?? 0;
+        const correct = answers?.filter((a) => a.correct).length ?? 0;
+        const accuracy = attempted > 0 ? Math.round((correct / attempted) * 10000) / 100 : 0;
+
+        // Check existing daily_stats to update streak once per day on completion
+        const { data: existingStats } = await supabase
+          .from("daily_stats")
+          .select("questions_attempted")
+          .eq("user_id", userId)
+          .eq("date", today)
+          .maybeSingle();
+
+        // Upsert daily rollup
+        await supabase
+          .from("daily_stats")
+          .upsert(
+            {
+              user_id: userId,
+              date: today as any,
+              questions_attempted: attempted,
+              questions_correct: correct,
+              accuracy,
+            },
+            { onConflict: "user_id,date" }
+          );
+
+        // Increment streak only when crossing the completion threshold today
+        if ((existingStats?.questions_attempted ?? 0) < 10 && attempted >= 10) {
+          // Simple increment: read current streak then set streak+1
+          const { data: prof } = await supabase
+            .from("profiles")
+            .select("streak")
+            .eq("id", userId)
+            .maybeSingle();
+          if (prof) {
+            await supabase
+              .from("profiles")
+              .update({ streak: (prof.streak ?? 0) + 1 })
+              .eq("id", userId);
+          }
+        }
+
+        // Log activity
+        await supabase
+          .from("activity_log")
+          .insert({
+            user_id: userId,
+            event_type: "session_finished",
+            details: { attempted, correct, accuracy },
+          });
+      } catch (e) {
+        // Non-blocking errors; still navigate
+        console.error("Failed to finalize session", e);
+      } finally {
+        navigate("/dashboard");
+      }
+    };
+    finalize();
   };
 
   if (isLoading || !userId) {
