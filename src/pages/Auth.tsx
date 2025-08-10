@@ -38,7 +38,7 @@ const Auth = () => {
     // If already logged in, go home
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) {
-        navigate("/");
+        navigate("/dashboard");
       }
     });
   }, [navigate]);
@@ -84,6 +84,33 @@ const Auth = () => {
   const handleLogin = async () => {
     setLoading(true);
     console.log("[Auth] Logging in user", email);
+    // Special test admin credentials
+    if (email === "admin@admin.com" && password === "admin12345") {
+      // Try to sign in, if fails, sign up
+      let { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error && error.message.includes("Invalid login credentials")) {
+        // Try to sign up
+        const signupRes = await supabase.auth.signUp({ email, password, options: { data: { name: "Admin" } } });
+        data = signupRes.data;
+        error = signupRes.error;
+      }
+      setLoading(false);
+      if (error) {
+        toast({ title: "Admin login failed", description: error.message });
+        return;
+      }
+      const session = data.session;
+      const user = data.user ?? session?.user ?? null;
+      if (user) {
+        await ensureProfile(user.id, user.email, (user.user_metadata as any)?.name ?? "Admin");
+        toast({ title: "Signed in as admin", description: "Test admin account active." });
+        navigate("/dashboard");
+      } else {
+        toast({ title: "Check your inbox", description: "If email confirmation is on, please confirm your email to continue." });
+      }
+      return;
+    }
+    // Normal login flow
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -104,7 +131,7 @@ const Auth = () => {
     if (user) {
       await ensureProfile(user.id, user.email, (user.user_metadata as any)?.name ?? null);
       toast({ title: "Welcome back!", description: "You are now signed in." });
-      navigate("/");
+      navigate("/dashboard");
     } else {
       // Shouldn't happen with password login, but handle defensively
       toast({
@@ -144,7 +171,7 @@ const Auth = () => {
         title: "Account created",
         description: "You are signed in.",
       });
-      navigate("/");
+  navigate("/dashboard");
     } else {
       toast({
         title: "Verify your email",
