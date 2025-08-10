@@ -142,7 +142,7 @@ const Index = () => {
             </div>
           </CardContent>
           <CardFooter className="flex gap-2">
-            <Button className="w-full" disabled onClick={() => navigate("/play")}>
+            <Button className="w-full" onClick={() => navigate("/play")}>
               Start today’s session
             </Button>
           </CardFooter>
