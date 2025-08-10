@@ -73,7 +73,7 @@ const Play = () => {
               <CardDescription>You finished today's session.</CardDescription>
             </CardHeader>
             <CardFooter className="flex gap-2">
-              <Button className="w-full" onClick={() => navigate("/")}>Back to Dashboard</Button>
+              <Button className="w-full" onClick={() => navigate("/dashboard")}>Back to Dashboard</Button>
             </CardFooter>
           </Card>
         </main>
@@ -86,7 +86,7 @@ const Play = () => {
       <header className="border-b">
         <div className="container flex items-center justify-between py-4">
           <div className="font-bold text-xl">Play</div>
-          <Button variant="secondary" onClick={() => navigate("/")}>Dashboard</Button>
+          <Button variant="secondary" onClick={() => navigate("/dashboard")}>Dashboard</Button>
         </div>
       </header>
       <main className="container py-8">

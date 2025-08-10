@@ -57,7 +57,7 @@ const Questions = () => {
         <div className="container flex items-center justify-between py-4">
           <h1 className="text-xl font-bold">Questions</h1>
           <div className="flex items-center gap-2">
-            <Button variant="secondary" onClick={() => navigate("/")}>Home</Button>
+            <Button variant="secondary" onClick={() => navigate("/dashboard")}>Dashboard</Button>
           </div>
         </div>
       </header>
