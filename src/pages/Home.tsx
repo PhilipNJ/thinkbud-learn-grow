@@ -52,7 +52,11 @@ const Home = () => {
               <div className="text-xs text-muted-foreground">No credit card required</div>
             </div>
             <div className="relative">
-              <div className="aspect-[16/10] w-full rounded-xl border bg-gradient-to-br from-primary/10 via-transparent to-primary/20" />
+              <img
+                src="src/img/sample_image.png"
+                alt="ThinkBud app preview"
+                className="aspect-[16/10] w-full rounded-xl border object-cover"
+              />
             </div>
           </div>
         </section>
